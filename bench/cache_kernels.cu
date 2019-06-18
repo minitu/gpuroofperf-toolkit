@@ -171,7 +171,7 @@ namespace benchmark_kernels {
 
 
 	template <class T, int blockdim, int stepwidth, int index_clamping>
-	__global__ void benchmark_func(T * const g_data){
+	__global__ void benchmark_func(T * const g_data, long size){
 		dev_fun<T> func;
 
 		// Thread block-wise striding
@@ -180,6 +180,10 @@ namespace benchmark_kernels {
 		const int stride = blockdim;
 
 		unsigned int offset = index;
+
+                // Make sure memory accesses don't go out of bounds
+                if (offset + stepwidth * stride >= size) return;
+
 		T temp = func.init(0);
 		for(int j=0; j<TOTAL_ITERATIONS; j+=UNROLL_ITERATIONS){
 			// Pretend updating of offset in order to force repetitive loads
@@ -213,7 +217,7 @@ namespace benchmark_kernels {
 		dim3 dimBlock(BLOCK_SIZE, 1, 1);
 		dim3 dimReducedGrid(TOTAL_REDUCED_BLOCKS, 1, 1);
 
-		benchmark_func< datatype, BLOCK_SIZE, 1, 256 ><<< dimReducedGrid, dimBlock >>>(cd);
+		benchmark_func< datatype, BLOCK_SIZE, 1, 256 ><<< dimReducedGrid, dimBlock >>>(cd, size);
 		CUDA_SAFE_CALL( cudaGetLastError() );
 		CUDA_SAFE_CALL( cudaDeviceSynchronize() );
 	}
@@ -235,7 +239,7 @@ namespace benchmark_kernels {
 		cudaEvent_t start, stop;
 
 		initializeEvents(&start, &stop);
-		benchmark_func< datatype, BLOCK_SIZE, stepwidth, index_clamping ><<< dimGrid, dimBlock >>>(cd);
+		benchmark_func< datatype, BLOCK_SIZE, stepwidth, index_clamping ><<< dimGrid, dimBlock >>>(cd, size);
 		float kernel_time = finalizeEvents(start, stop);
 		double bandwidth = (static_cast<double>(memoryoperations)*sizeof(datatype))/kernel_time*1000./(1000.*1000.*1000.);
 
