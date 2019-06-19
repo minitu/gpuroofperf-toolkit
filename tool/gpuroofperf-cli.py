@@ -122,6 +122,7 @@ class gpuroofperftool_CLI:
 			gpumetrics = extractor.retrieveGPUInfo()
 		except ki.NoneGPUsException as e:
 			print('Error:',str(e), file=sys.stderr)
+		'''
 		# Choose device index when more than 1 are available
 		if len(gpumetrics)>1:
 			print('Multiple GPUs found. Please choose one of them below:')
@@ -133,6 +134,8 @@ class gpuroofperftool_CLI:
 			extractor.selected_device = gpuindex-1
 		else:
 			extractor.selected_device = 0
+		'''
+		extractor.selected_device = 0
 		print("Profiling on GPU: %s" % (gpumetrics[extractor.selected_device]['device']))
 		print("Invocation: \""+self.invocation+"\"")
 		# Simple profiling
@@ -144,6 +147,7 @@ class gpuroofperftool_CLI:
 			print('GPU kernel functions invoked:')
 			for i, kernel in enumerate(kernels_by_time):
 				print('%d. %s (Time(%%):%.2f, %.4f msecs, %d invocations)' % (i+1, ki.strip_parenthesis(kernel[0]), kernel[1], kernel[2], kernel[3]))
+			'''
 			userfeedback = input('Please give the subject kernel indices (comma separated) (1-{} or default:all kernels):'.format(len(kernels_by_time))).strip()
 			if userfeedback.strip()=='':
 				subject_kernels.update( next(zip(*kernels_by_time)) )
@@ -153,6 +157,8 @@ class gpuroofperftool_CLI:
 				print('Error: Invalid index')
 				continue
 			subject_kernels = {kernels_by_time[i-1][0] for i in subject_kernel_indexes}
+			'''
+			subject_kernels.update( next(zip(*kernels_by_time)) )
 		print('Selected kernels: {}'.format(', '.join(('"{}"'.format(ki.strip_parenthesis(s)) for s in subject_kernels))))
 		extractor.setSubjectKernels(subject_kernels)
 		# Trace profiling
