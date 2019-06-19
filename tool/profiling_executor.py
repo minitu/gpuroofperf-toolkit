@@ -57,7 +57,7 @@ class profExecutor:
 		envvars = {}
 		if device is not None:
 			envvars['CUDA_VISIBLE_DEVICES'] = str(device)
-		proc = profExecutor._execute( [self.nvprof]+arguments, envvars )
+		proc = profExecutor._execute(["lrun","-N1","-T1"]+[self.nvprof]+arguments, envvars )
 		(stdout, stderr) = (proc.stdout, proc.stderr)
 		if message is not None:
 			print("%s... " % (message), end='', flush=True)
