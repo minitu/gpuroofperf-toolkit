@@ -148,6 +148,20 @@ class gpuroofperftool_CLI:
 			print('GPU kernel functions invoked:')
 			for i, kernel in enumerate(kernels_by_time):
 				print('%d. %s (Time(%%):%.2f, %.4f msecs, %d invocations)' % (i+1, ki.strip_parenthesis(kernel[0]), kernel[1], kernel[2], kernel[3]))
+
+			time_percent_sum = 0
+			for kernel in kernels_by_time:
+				time_percent_sum += kernel[1]
+			print('Total percentage: %.2f%%' % time_percent_sum)
+			time_percent_run = 0
+			subject_kernel_indexes = []
+			for i, kernel in enumerate(kernels_by_time):
+				time_percent_run += kernel[1]
+				subject_kernel_indexes.append(i)
+				if time_percent_run >= time_percent_sum * 0.9:
+					break
+			print('Selected percentage: %.2f%% (%.2f%% of total)' % (time_percent_run, time_percent_run / time_percent_sum * 100))
+			subject_kernels = {kernels_by_time[i][0] for i in subject_kernel_indexes}
 			'''
 			userfeedback = input('Please give the subject kernel indices (comma separated) (1-{} or default:all kernels):'.format(len(kernels_by_time))).strip()
 			if userfeedback.strip()=='':
@@ -159,7 +173,6 @@ class gpuroofperftool_CLI:
 				continue
 			subject_kernels = {kernels_by_time[i-1][0] for i in subject_kernel_indexes}
 			'''
-			subject_kernels.update( next(zip(*kernels_by_time)) )
 		print('Selected kernels: {}'.format(', '.join(('"{}"'.format(ki.strip_parenthesis(s)) for s in subject_kernels))))
 		extractor.setSubjectKernels(subject_kernels)
 

@@ -136,7 +136,7 @@ class KernelParamExtractor:
 		return self.gpumetrics
 
 	def simpleProfiling(self):
-		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--csv']+self.invocation.split(), 'Running simple profiling', self.selected_device)
+		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv']+self.invocation.split(), 'Running simple profiling', self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = []
 		for row in csv.reader(lines_err):
@@ -248,8 +248,17 @@ class KernelParamExtractor:
 
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
-		#TODO: Consider limiting trace profiling to a particular kernel (--kernels xx)
-		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--csv', '--metrics', ','.join(metrics)]+self.invocation.split(), 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device)
+		#arguments = ['-u', 'ms', '--csv', '--metrics', ','.join(metrics)]
+		arguments = ['-u', 'ms', '--csv']
+		subject_kernels_copy = subject_kernels.copy()
+		while subject_kernels_copy:
+			kernel = subject_kernels_copy.pop()
+			arguments.append('--kernels')
+			arguments.append(kernel)
+			arguments.append('--metrics')
+			arguments.append(','.join(metrics))
+		arguments += self.invocation.split()
+		(lines_out, lines_err) = self.executor.execute(arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = [row for row in csv.reader(lines_err) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
