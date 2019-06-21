@@ -65,11 +65,13 @@ class KernelParamExtractor:
 				if self.metricprofile['Kernel'][i] == kernel
 			}
 			# similarly preprocess utilizations
+			'''
 			utilizations = {
 				v: int(strip_parenthesis(self.utilizationprofile['Avg'][i], ret_argument=True))
 				for i,v in enumerate(self.utilizationprofile['Metric Name'])
 				if self.utilizationprofile['Kernel'][i] == kernel
 			}
+			'''
 			# find dominant operation (fp32, fp64, fp16?)
 			metric_fp_ops = {k[-5:]:v for k,v in metric_counts.items() if k.startswith('inst_fp_')}
 			dominant_op = \
@@ -106,7 +108,7 @@ class KernelParamExtractor:
 				'mix_ldst': feature_inst_ldst_pctg,
 				'reference_time': float(self.simpleprofile[kernel]['Time']),
 				'count': invocation_count,
-				'utilizations': utilizations
+				#'utilizations': utilizations
 			}
 		return res
 
@@ -197,8 +199,9 @@ class KernelParamExtractor:
 	# Profile floating point operations
 	def flopProfiling(self, subject_kernels):
 		# Collect flop metric counters
+		# XXX: Ignore half precision metrics
 		metrics = [ m for m in self.gpumetrics[self.selected_device]['metrics'].keys()
-		            if m.startswith('flop_count_') ]
+		            if (m.startswith('flop_count_dp') or m.startswith('flop_count_sp')) ]
 		# Invoke profiling with collected metrics
 		profdata = self.__metric_profile(subject_kernels, metrics, 'floating point operations')
 		self.update_metrics(profdata)
@@ -206,8 +209,9 @@ class KernelParamExtractor:
 
 	# Profile memory transactions
 	def memoryProfiling(self, subject_kernels):
+		WANTED_METRICS = ['dram_read_transactions', 'dram_write_transactions', 'l2_read_transactions', 'l2_write_transactions']
 		metrics = [ m for m in self.gpumetrics[self.selected_device]['metrics'].keys()
-		            if (m.startswith('dram_') or m.startswith('l2_')) and m.endswith('_transactions') ]
+		            if m in WANTED_METRICS ]
 		# Invoke profiling with collected metrics
 		profdata = self.__metric_profile(subject_kernels, metrics, 'memory transactions')
 		self.update_metrics(profdata)
@@ -215,9 +219,9 @@ class KernelParamExtractor:
 
 	# Profile instruction counts executed
 	def instructionProfiling(self, subject_kernels):
-		UNWANTED_METRICS = ['inst_per_warp', 'inst_replay_overhead']
+		WANTED_METRICS = ['inst_compute_ld_st', 'inst_executed', 'inst_fp_32', 'inst_fp_64', 'inst_integer']
 		metrics = [ m for m in self.gpumetrics[self.selected_device]['metrics'].keys()
-		            if m.startswith('inst_') and m not in UNWANTED_METRICS ]
+		            if m in WANTED_METRICS ]
 		# Invoke profiling with collected metrics
 		profdata = self.__metric_profile(subject_kernels, metrics, 'instruction counts')
 		self.update_metrics(profdata)

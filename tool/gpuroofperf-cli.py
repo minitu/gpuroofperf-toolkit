@@ -74,9 +74,6 @@ class gpuroofperftool_CLI:
 
 	def check_for_warning_info(self, params):
 		"""Checks for various warnings undermining the prediction effectiveness"""
-		high_l2_kernels = []
-		high_num_calls_kernels = []
-		low_utilization_kernels = []
 		for k,v in params.data.items():
 			warnings = []
 			if v['l2_bytes'] > 2*v['dram_bytes']:
@@ -88,11 +85,13 @@ class gpuroofperftool_CLI:
 				warnings.append( 'Warning: Significantly low execution time per kernel invocation ({} msecs for {} invocations). '\
 					'Unpredictable overheads be non negligible in situations where the '\
 					'execution time of a kernel invocation gets very short.'.format(v['reference_time'], v['count']) )
+			'''
 			max_utilization = max( v['utilizations'].values() )
 			if max_utilization < 5:
 				max_utilization_metrics = {k:v for k,v in v['utilizations'].items() if v==max_utilization}.keys()
 				warnings.append( 'Warning: Low utilizations observed (highest utilizations {}:{}). '\
 					'Low utilizations potentially express other latencies that cannot be captured by the model.'.format(', '.join(max_utilization_metrics), max_utilization) )
+			'''
 			if len(warnings)>0:
 				print('\n{}\n{}'.format(k,'\n'.join(warnings)), file=sys.stderr)
 		print()
@@ -138,10 +137,12 @@ class gpuroofperftool_CLI:
 		extractor.selected_device = 0
 		print("Profiling on GPU: %s" % (gpumetrics[extractor.selected_device]['device']))
 		print("Invocation: \""+self.invocation+"\"")
-		# Simple profiling
+
+		# Simple profiling: extract kernels and their runtimes
 		simpleprofile = extractor.simpleProfiling()
 		kernels_by_time = sorted([ [k, float(v['Time(%)']), float(v['Time']), int(v['Calls'])] for k,v in simpleprofile.items()], key=lambda v: v[1], reverse=True)
-		# Select kernels under inspection
+
+		# Select kernels for inspection
 		subject_kernels = set()
 		while not subject_kernels:
 			print('GPU kernel functions invoked:')
@@ -161,14 +162,17 @@ class gpuroofperftool_CLI:
 			subject_kernels.update( next(zip(*kernels_by_time)) )
 		print('Selected kernels: {}'.format(', '.join(('"{}"'.format(ki.strip_parenthesis(s)) for s in subject_kernels))))
 		extractor.setSubjectKernels(subject_kernels)
+
 		# Trace profiling
-		extractor.traceProfiling(subject_kernels)
+		#extractor.traceProfiling(subject_kernels) XXX: Currently not used
+
 		# Hardware metric profiling
 		extractor.flopProfiling(subject_kernels)
 		extractor.memoryProfiling(subject_kernels)
 		extractor.instructionProfiling(subject_kernels)
-		extractor.utilizationProfiling(subject_kernels)
+		#extractor.utilizationProfiling(subject_kernels) XXX: Currently not used
 		print("Kernel inspection done!")
+
 		params = extractor.get_params()
 		self.check_for_warning_info(params)
 		if self.output_params is not None:

@@ -57,19 +57,20 @@ class profExecutor:
 		envvars = {}
 		if device is not None:
 			envvars['CUDA_VISIBLE_DEVICES'] = str(device)
+		start_time = time.time()
 		proc = profExecutor._execute(["lrun","-N1","-T1"]+[self.nvprof]+arguments, envvars )
 		(stdout, stderr) = (proc.stdout, proc.stderr)
 		if message is not None:
 			print("%s... " % (message), end='', flush=True)
-		wait_thread = Thread(target=profExecutor._progresswait, args=(self, proc))
-		wait_thread.start()
+		#wait_thread = Thread(target=profExecutor._progresswait, args=(self, proc))
+		#wait_thread.start()
 		(output, errors) = proc.communicate()
-		wait_thread.join()
+		#wait_thread.join()
 		lines_out = output.splitlines()
 		lines_err = errors.splitlines()
 		if message is not None:
 			if proc.returncode==0:
-				print("Done")
+				print("Done, took {:.2f} seconds".format(time.time() - start_time))
 			else:
 				print("Error code: %d" % (proc.returncode))
 				raise profException("Profiling returned non zero error code. Profiler error output follows:\n%s" % (errors))
@@ -81,10 +82,10 @@ class profExecutor:
 			proc = profExecutor._execute( ['nvidia-smi', '-q'] )
 			(stdout, stderr) = (proc.stdout, proc.stderr)
 			print("Querying GPU driver version (via nvidia-smi)... ", end='', flush=True)
-			wait_thread = Thread(target=profExecutor._progresswait, args=(self, proc))
-			wait_thread.start()
+			#wait_thread = Thread(target=profExecutor._progresswait, args=(self, proc))
+			#wait_thread.start()
 			(output, _) = proc.communicate()
-			wait_thread.join()
+			#wait_thread.join()
 			lines_out = output.splitlines()
 			#lines_err = errors.splitlines()
 			if proc.returncode==0:
