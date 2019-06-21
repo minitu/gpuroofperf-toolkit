@@ -196,6 +196,15 @@ class KernelParamExtractor:
 			else:
 				self.metricprofile[key] = col
 
+	# Profile metrics
+	def metricProfiling(self, subject_kernels):
+		WANTED_METRICS = ['dram_read_transactions', 'dram_write_transactions', 'l2_read_transactions', 'l2_write_transactions', 'inst_compute_ld_st', 'inst_executed', 'inst_fp_32', 'inst_fp_64', 'inst_integer']
+		metrics = [ m for m in self.gpumetrics[self.selected_device]['metrics'].keys()
+		            if (m.startswith('flop_count_dp') or m.startswith('flop_count_sp')) or m in WANTED_METRICS ]
+		profdata = self.__metric_profile(subject_kernels, metrics, 'all')
+		self.update_metrics(profdata)
+		return profdata
+
 	# Profile floating point operations
 	def flopProfiling(self, subject_kernels):
 		# Collect flop metric counters

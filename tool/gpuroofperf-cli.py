@@ -167,9 +167,12 @@ class gpuroofperftool_CLI:
 		#extractor.traceProfiling(subject_kernels) XXX: Currently not used
 
 		# Hardware metric profiling
+		extractor.metricProfiling(subject_kernels)
+		'''
 		extractor.flopProfiling(subject_kernels)
 		extractor.memoryProfiling(subject_kernels)
 		extractor.instructionProfiling(subject_kernels)
+		'''
 		#extractor.utilizationProfiling(subject_kernels) XXX: Currently not used
 		print("Kernel inspection done!")
 
