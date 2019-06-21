@@ -108,6 +108,7 @@ class profExecutor:
 			myenv.update(envvars)
 		#if device is not None:
 		#	myenv["CUDA_VISIBLE_DEVICES"] = str(device)
+		print("Executing: %s" % (' '.join(arguments)), flush=True)
 		proc = subprocess.Popen(arguments, env=myenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 		return proc
 		(proc_out, proc_err) = (proc.stdout, proc.stderr)
