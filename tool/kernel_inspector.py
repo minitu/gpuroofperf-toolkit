@@ -249,7 +249,7 @@ class KernelParamExtractor:
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
 		#arguments = ['-u', 'ms', '--csv', '--metrics', ','.join(metrics)]
-		arguments = ['-u', 'ms', '--csv']
+		arguments = ['-u', 'ms', '--csv', '--demangling', 'off']
 		subject_kernels_copy = subject_kernels.copy()
 		while subject_kernels_copy:
 			kernel = subject_kernels_copy.pop()
@@ -264,6 +264,6 @@ class KernelParamExtractor:
 		# Convert filtered list data to dictionary using header row as keys
 		dictdata = {row[0]:row[1:] for row in zip(*filtereddata)}
 		# Remove unwanted rows (keep only subject kernel rows)
-		idx_rows = [i for i,v in enumerate(dictdata['Kernel']) if v in subject_kernels]
-		dictdata = {k:list(map(lambda i:v[i],idx_rows)) for k,v in dictdata.items()}
+		#idx_rows = [i for i,v in enumerate(dictdata['Kernel']) if v in subject_kernels]
+		#dictdata = {k:list(map(lambda i:v[i],idx_rows)) for k,v in dictdata.items()}
 		return dictdata
