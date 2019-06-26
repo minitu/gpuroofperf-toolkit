@@ -24,6 +24,7 @@ class gpuroofperftool_CLI:
 		self.output_params = None
 		self.input_params = None
 		self.output_prediction = None
+		self.utilization = False
 		self.use_csv = False
 		self.nvprof_check = False
 		return
@@ -39,6 +40,7 @@ class gpuroofperftool_CLI:
 		print("\t-i, --input=FILE        Kernel parameters in FILE will be used as input (enables performance estimation mode)")
 		print("\t-p, --profpath=FILE     nvprof full path is set to FILE")
 		print("\t-s, --prediction=FILE   Save prediction data to FILE (JSON default format)")
+		print("\t-u, --utilization       Perform utilization profiling")
 		print("\t-c, --csv               Use CSV format for saving data instead of JSON")
 		print("\t-v, --nvprof-check      Check if both nvprof tool and CUDA device function properly")
 		print()
@@ -76,22 +78,26 @@ class gpuroofperftool_CLI:
 		"""Checks for various warnings undermining the prediction effectiveness"""
 		for k,v in params.data.items():
 			warnings = []
-			if v['l2_bytes'] > 2*v['dram_bytes']:
-				warnings.append( 'Warning: L2 traffic observed to be significantly higher than DRAM traffic ({} MB vs {} MB). '\
-					'In this case the actual performance could be L2 cache bound '\
-					'instead of DRAM bound in case the memory subsystem is a performance '\
-					'limitation factor.'.format(v['l2_bytes']/1000000., v['dram_bytes']/1000000.) )
-			if v['reference_time']/v['count'] < 0.1:
-				warnings.append( 'Warning: Significantly low execution time per kernel invocation ({} msecs for {} invocations). '\
-					'Unpredictable overheads be non negligible in situations where the '\
-					'execution time of a kernel invocation gets very short.'.format(v['reference_time'], v['count']) )
-			'''
-			max_utilization = max( v['utilizations'].values() )
-			if max_utilization < 5:
-				max_utilization_metrics = {k:v for k,v in v['utilizations'].items() if v==max_utilization}.keys()
-				warnings.append( 'Warning: Low utilizations observed (highest utilizations {}:{}). '\
-					'Low utilizations potentially express other latencies that cannot be captured by the model.'.format(', '.join(max_utilization_metrics), max_utilization) )
-			'''
+			if not self.utilization:
+				if v['l2_bytes'] > 2*v['dram_bytes']:
+					warnings.append( 'Warning: L2 traffic observed to be significantly higher than DRAM traffic ({} MB vs {} MB). '\
+						'In this case the actual performance could be L2 cache bound '\
+						'instead of DRAM bound in case the memory subsystem is a performance '\
+						'limitation factor.'.format(v['l2_bytes']/1000000., v['dram_bytes']/1000000.) )
+				if v['reference_time']/v['count'] < 0.1:
+					warnings.append( 'Warning: Significantly low execution time per kernel invocation ({} msecs for {} invocations). '\
+						'Unpredictable overheads be non negligible in situations where the '\
+						'execution time of a kernel invocation gets very short.'.format(v['reference_time'], v['count']) )
+			else:
+				print('\n{} utilization info'.format(k))
+				for metric, val in v['utilizations'].items():
+					print('{}: {}'.format(metric, val))
+
+				max_utilization = max(v['utilizations'].values())
+				if max_utilization < 5:
+					max_utilization_metrics = {k:v for k,v in v['utilizations'].items() if v==max_utilization}.keys()
+					warnings.append( 'Warning: Low utilizations observed (highest utilizations {}:{}). '\
+						'Low utilizations potentially express other latencies that cannot be captured by the model.'.format(', '.join(max_utilization_metrics), max_utilization) )
 			if len(warnings)>0:
 				print('\n{}\n{}'.format(k,'\n'.join(warnings)), file=sys.stderr)
 		print()
@@ -116,7 +122,7 @@ class gpuroofperftool_CLI:
 
 	def kernelInspection(self):
 		# Extract gpu metrics and select GPU if required
-		extractor = ki.KernelParamExtractor(self.invocation, self.path_nvprof, self.VERSION)
+		extractor = ki.KernelParamExtractor(self.invocation, self.utilization, self.path_nvprof, self.VERSION)
 		try:
 			gpumetrics = extractor.retrieveGPUInfo()
 		except ki.NoneGPUsException as e:
@@ -179,14 +185,17 @@ class gpuroofperftool_CLI:
 		# Trace profiling
 		#extractor.traceProfiling(subject_kernels) XXX: Currently not used
 
-		# Hardware metric profiling
-		extractor.metricProfiling(subject_kernels)
+		if not self.utilization:
+			# Hardware metric profiling
+			extractor.metricProfiling(subject_kernels)
+		else:
+			# Utilization profiling
+			extractor.utilizationProfiling(subject_kernels)
 		'''
 		extractor.flopProfiling(subject_kernels)
 		extractor.memoryProfiling(subject_kernels)
 		extractor.instructionProfiling(subject_kernels)
 		'''
-		#extractor.utilizationProfiling(subject_kernels) XXX: Currently not used
 		print("Kernel inspection done!")
 
 		params = extractor.get_params()
@@ -221,7 +230,7 @@ class gpuroofperftool_CLI:
 			self.showHelp()
 			return
 		try:
-			opts, args = getopt.getopt(self.cmdargs, "hp:o:i:g:s:cv", ["profpath=","output=","gpuspecs=","input=","prediction=","csv","nvprof-check"])
+			opts, args = getopt.getopt(self.cmdargs, "hp:o:i:g:s:ucv", ["profpath=","output=","gpuspecs=","input=","prediction=","utilization","csv","nvprof-check"])
 		except getopt.GetoptError:
 			self.showHelp()
 			sys.exit(2)
@@ -239,6 +248,8 @@ class gpuroofperftool_CLI:
 				self.input_params = arg
 			elif opt in ("-s", "--prediction"):
 				self.output_prediction = arg
+			elif opt in ("-u", "--utilization"):
+				self.utilization = True
 			elif opt in ("-c", "--csv"):
 				self.use_csv = True
 			elif opt in ("-v", "--nvprof-check"):
@@ -262,6 +273,8 @@ class gpuroofperftool_CLI:
 			if self.mode_kernel_inspection:
 				print("\n------- Running kernel inspection -------")
 				params = self.kernelInspection()
+				if self.utilization:
+					sys.exit(0)
 			elif self.input_params:
 				params = KernelParameters()
 				params.load(self.input_params)

@@ -21,7 +21,7 @@ class NoneGPUsException(Exception):
 class KernelParamExtractor:
 	IGNORED_CALLS = ('', '[CUDA memcpy HtoD]', '[CUDA memcpy DtoH]', '[CUDA memset]')
 
-	def __init__(self, invocation, nvprofpath=None, appver=None):
+	def __init__(self, invocation, utilization, nvprofpath=None, appver=None):
 		self.invocation = invocation
 		self.executor = profiling_executor.profExecutor(nvprofpath)
 		self.selected_device = None
@@ -30,6 +30,7 @@ class KernelParamExtractor:
 		self.simpleprofile = {}
 		self.traceprofile = {}
 		self.metricprofile = {}
+		self.utilization = utilization
 		self.utilizationprofile = {}
 		self.appversion = appver
 		self.driver = None
@@ -48,68 +49,70 @@ class KernelParamExtractor:
 				'version': self.appversion,
 				'data': {}
 			})
-		for kernel in self.subject_kernels:
-			# retrieve invocation count
-			invocation_count = {
-				int(v)
-				for i,v in enumerate(self.metricprofile['Invocations'])
-				if self.metricprofile['Kernel'][i] == kernel
-			}
-			if len(invocation_count)>1:
-				raise Exception("Only one invocation count expected ({})".format(invocation_count))
-			invocation_count = next(iter(invocation_count))
-			# filter records for current kernel and apply invocation counts
-			metric_counts = {
-				v: int(self.metricprofile['Avg'][i]) * int(self.metricprofile['Invocations'][i])
-				for i,v in enumerate(self.metricprofile['Metric Name'])
-				if self.metricprofile['Kernel'][i] == kernel
-			}
-			# similarly preprocess utilizations
-			'''
-			utilizations = {
-				v: int(strip_parenthesis(self.utilizationprofile['Avg'][i], ret_argument=True))
-				for i,v in enumerate(self.utilizationprofile['Metric Name'])
-				if self.utilizationprofile['Kernel'][i] == kernel
-			}
-			'''
-			# find dominant operation (fp32, fp64, fp16?)
-			metric_fp_ops = {k[-5:]:v for k,v in metric_counts.items() if k.startswith('inst_fp_')}
-			dominant_op = \
-				'integer' if sum(metric_fp_ops.values())==0 else \
-				max(metric_fp_ops.keys(), key=lambda k: metric_fp_ops[k])
-			#	'fp_32' if metric_counts['inst_fp_32']>metric_counts['inst_fp_64'] else \
-			#	'fp_64' if metric_counts['inst_fp_64']>metric_counts['inst_fp_16'] else \
-			#	'fp_16';
-			inst_compute = metric_counts['inst_'+dominant_op]
-			metric_fmas = {
-				'fp_32': metric_counts['flop_count_sp_fma'],
-				'fp_64': metric_counts['flop_count_dp_fma'],
-				'fp_16': metric_counts.get('flop_count_hp_fma', 0),
-				'integer': 0
-			}[dominant_op]
-			feature_compute_ops = inst_compute + metric_fmas
-			feature_dram_bytes = (metric_counts['dram_read_transactions']+metric_counts['dram_write_transactions'])*32
-			feature_l2_bytes = (metric_counts['l2_read_transactions']+metric_counts['l2_write_transactions'])*32
-			try:
-				feature_op_mix_efficiency = feature_compute_ops/(2*(feature_compute_ops-metric_fmas))
-			except ZeroDivisionError as e:
-				feature_op_mix_efficiency = 0
-			inst_compute_ld_st = metric_counts['inst_compute_ld_st']
-			inst_total = metric_counts['inst_executed'] * 32
-			feature_inst_op_pctg = inst_compute / inst_total
-			feature_inst_ldst_pctg = inst_compute_ld_st / inst_total
-			res[kernel] = {
-				'dominant_op': dominant_op,
-				'compute_ops': feature_compute_ops,
-				'dram_bytes': feature_dram_bytes,
-				'l2_bytes': feature_l2_bytes,
-				'opmix_efficiency': feature_op_mix_efficiency,
-				'mix_compute': feature_inst_op_pctg,
-				'mix_ldst': feature_inst_ldst_pctg,
-				'reference_time': float(self.simpleprofile[kernel]['Time']),
-				'count': invocation_count,
-				#'utilizations': utilizations
-			}
+		if not self.utilization: # Regular metric profiling
+			for kernel in self.subject_kernels:
+				# retrieve invocation count
+				invocation_count = {
+					int(v)
+					for i,v in enumerate(self.metricprofile['Invocations'])
+					if self.metricprofile['Kernel'][i] == kernel
+				}
+				if len(invocation_count)>1:
+					raise Exception("Only one invocation count expected ({})".format(invocation_count))
+				invocation_count = next(iter(invocation_count))
+				# filter records for current kernel and apply invocation counts
+				metric_counts = {
+					v: int(self.metricprofile['Avg'][i]) * int(self.metricprofile['Invocations'][i])
+					for i,v in enumerate(self.metricprofile['Metric Name'])
+					if self.metricprofile['Kernel'][i] == kernel
+				}
+				# find dominant operation (fp32, fp64, fp16?)
+				metric_fp_ops = {k[-5:]:v for k,v in metric_counts.items() if k.startswith('inst_fp_')}
+				dominant_op = \
+					'integer' if sum(metric_fp_ops.values())==0 else \
+					max(metric_fp_ops.keys(), key=lambda k: metric_fp_ops[k])
+				#	'fp_32' if metric_counts['inst_fp_32']>metric_counts['inst_fp_64'] else \
+				#	'fp_64' if metric_counts['inst_fp_64']>metric_counts['inst_fp_16'] else \
+				#	'fp_16';
+				inst_compute = metric_counts['inst_'+dominant_op]
+				metric_fmas = {
+					'fp_32': metric_counts['flop_count_sp_fma'],
+					'fp_64': metric_counts['flop_count_dp_fma'],
+					'fp_16': metric_counts.get('flop_count_hp_fma', 0),
+					'integer': 0
+				}[dominant_op]
+				feature_compute_ops = inst_compute + metric_fmas
+				feature_dram_bytes = (metric_counts['dram_read_transactions']+metric_counts['dram_write_transactions'])*32
+				feature_l2_bytes = (metric_counts['l2_read_transactions']+metric_counts['l2_write_transactions'])*32
+				try:
+					feature_op_mix_efficiency = feature_compute_ops/(2*(feature_compute_ops-metric_fmas))
+				except ZeroDivisionError as e:
+					feature_op_mix_efficiency = 0
+				inst_compute_ld_st = metric_counts['inst_compute_ld_st']
+				inst_total = metric_counts['inst_executed'] * 32
+				feature_inst_op_pctg = inst_compute / inst_total
+				feature_inst_ldst_pctg = inst_compute_ld_st / inst_total
+				res[kernel] = {
+					'dominant_op': dominant_op,
+					'compute_ops': feature_compute_ops,
+					'dram_bytes': feature_dram_bytes,
+					'l2_bytes': feature_l2_bytes,
+					'opmix_efficiency': feature_op_mix_efficiency,
+					'mix_compute': feature_inst_op_pctg,
+					'mix_ldst': feature_inst_ldst_pctg,
+					'reference_time': float(self.simpleprofile[kernel]['Time']),
+					'count': invocation_count,
+				}
+		else: # Extract utilization info
+			for kernel in self.subject_kernels:
+				utilizations = {
+					v: int(strip_parenthesis(self.utilizationprofile['Avg'][i], ret_argument=True))
+					for i, v in enumerate(self.utilizationprofile['Metric Name'])
+					if self.utilizationprofile['Kernel'][i] == kernel
+				}
+				res[kernel] = {
+					'utilizations': utilizations
+				}
 		return res
 
 	# Retrieve GPU metrics for available devices
@@ -238,7 +241,7 @@ class KernelParamExtractor:
 
 	# Profile utilizations
 	def utilizationProfiling(self, subject_kernels):
-		UNWANTED_METRICS = ['issue_slot_utilization']
+		UNWANTED_METRICS = ['issue_slot_utilization', 'half_precision_fu_utilization', 'tensor_precision_fu_utilization']
 		metrics = [ m for m in self.gpumetrics[self.selected_device]['metrics'].keys()
 		            if m.endswith('_utilization') and m not in UNWANTED_METRICS ]
 		# Invoke profiling with collected metrics
