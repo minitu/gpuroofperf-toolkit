@@ -53,13 +53,12 @@ class profExecutor:
 			time.sleep(0.1)
 			counter = (counter + 1) % len(CHARS)
 
-	def execute(self, prefix, arguments, message=None, device=None):
+	def execute(self, arguments, message=None, device=None, prefix=""):
 		envvars = {}
 		if device is not None:
 			envvars['CUDA_VISIBLE_DEVICES'] = str(device)
 		start_time = time.time()
-		proc = profExecutor._execute(prefix.split()+[self.nvprof]+arguments, envvars )
-		(stdout, stderr) = (proc.stdout, proc.stderr)
+		proc = profExecutor._execute(prefix.split()+[self.nvprof]+arguments, envvars)
 		if message is not None:
 			print("%s... " % (message), end='', flush=True)
 		#wait_thread = Thread(target=profExecutor._progresswait, args=(self, proc))
@@ -101,22 +100,9 @@ class profExecutor:
 
 	@staticmethod
 	def _execute(arguments, envvars=None):
-		#nvprof --devices 0 --query-metrics
-		#print("DEBUG: executing:'%s'" % (' '.join(arguments)))
 		myenv = os.environ.copy()
 		if envvars is not None:
 			myenv.update(envvars)
-		#if device is not None:
-		#	myenv["CUDA_VISIBLE_DEVICES"] = str(device)
 		print("Executing: %s" % (' '.join(arguments)), flush=True)
 		proc = subprocess.Popen(arguments, env=myenv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 		return proc
-		(proc_out, proc_err) = (proc.stdout, proc.stderr)
-		print('proc_out:',proc_out)
-		errors = proc_err.read()
-		print(errors)
-		if len(errors)>0:
-			print( 'Error: '+errors)
-		lines_out = proc_out.read()
-		if len(lines_out)>0:
-			print( 'stdout: '+lines_out)

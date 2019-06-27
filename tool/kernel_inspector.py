@@ -10,6 +10,7 @@ from kernel_parameters import KernelParameters
 import re
 import csv
 import json, datetime, os, platform
+import glob
 
 def strip_parenthesis(s, ret_argument=False):
 	m = re.search('(.+)\((.+?)\)', s)
@@ -118,7 +119,7 @@ class KernelParamExtractor:
 
 	# Retrieve GPU metrics for available devices
 	def retrieveGPUInfo(self):
-		(lines_out, lines_err) = self.executor.execute(self.prefix, ['--devices', 'all', '--query-metrics'], 'Retrieving GPU information')
+		(lines_out, lines_err) = self.executor.execute(['--devices', 'all', '--query-metrics'], 'Retrieving GPU information')
 		lines_out = map(lambda l:l.strip(), lines_out)
 		lines_out = filter(lambda l:not l=='', lines_out)
 		self.gpumetrics = []
@@ -140,10 +141,11 @@ class KernelParamExtractor:
 		return self.gpumetrics
 
 	def simpleProfiling(self):
-		(lines_out, lines_err) = self.executor.execute(self.prefix, ['-u', 'ms', '--demangling', 'off', '--csv']+self.invocation.split(), 'Running simple profiling', self.selected_device)
+		self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv', '--log-file', 'tmp-simple-%q{OMPI_COMM_WORLD_RANK}.csv']+self.invocation.split(), 'Running simple profiling', self.selected_device, self.prefix)
 		# Process CSV rows and exclude unwanted rows
+		csv_file = open('tmp-simple-0.csv')
 		filtereddata = []
-		for row in csv.reader(lines_err):
+		for row in csv.reader(csv_file):
 			if len(row)>=7:
 				# Ignore rows when name is empty, [CUDA memcpy HtoD], etc.
 				if row[-1] in KernelParamExtractor.IGNORED_CALLS:
@@ -164,6 +166,13 @@ class KernelParamExtractor:
 				continue
 			results[name] = {k:v[i] for k,v in dictdata.items() if k!=KEY_COLUMN}
 		self.simpleprofile = results
+		# Remove temporary CSV files
+		remove_files = glob.glob('./tmp-simple-*.csv')
+		for remove_file in remove_files:
+			try:
+				os.remove(remove_file)
+			except:
+				print("Error while deleting file: ", remove_file)
 		return results
 
 	def setSubjectKernels(self, kernel_set):
@@ -176,7 +185,7 @@ class KernelParamExtractor:
 	def traceProfiling(self, subject_kernels):
 		#nvprof -u ms --print-gpu-trace $executable
 		#TODO: Consider limiting trace profiling to a particular kernel (--kernels xx)
-		(lines_out, lines_err) = self.executor.execute(self.prefix, ['-u', 'ms', '--csv', '--print-gpu-trace']+self.invocation.split(), 'Running trace profiling', self.selected_device)
+		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--csv', '--print-gpu-trace']+self.invocation.split(), 'Running trace profiling', self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = [row for row in csv.reader(lines_err) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
@@ -252,8 +261,7 @@ class KernelParamExtractor:
 
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
-		#arguments = ['-u', 'ms', '--csv', '--metrics', ','.join(metrics)]
-		arguments = ['-u', 'ms', '--csv', '--demangling', 'off']
+		arguments = ['-u', 'ms', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-%q{OMPI_COMM_WORLD_RANK}.csv']
 		subject_kernels_copy = subject_kernels.copy()
 		while subject_kernels_copy:
 			kernel = subject_kernels_copy.pop()
@@ -262,12 +270,20 @@ class KernelParamExtractor:
 			arguments.append('--metrics')
 			arguments.append(','.join(metrics))
 		arguments += self.invocation.split()
-		(lines_out, lines_err) = self.executor.execute(self.prefix, arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device)
+		self.executor.execute(arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device, self.prefix)
 		# Process CSV rows and exclude unwanted rows
-		filtereddata = [row for row in csv.reader(lines_err) if len(row)>6]
+		csv_file = open('tmp-metric-0.csv')
+		filtereddata = [row for row in csv.reader(csv_file) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
 		dictdata = {row[0]:row[1:] for row in zip(*filtereddata)}
 		# Remove unwanted rows (keep only subject kernel rows)
 		#idx_rows = [i for i,v in enumerate(dictdata['Kernel']) if v in subject_kernels]
 		#dictdata = {k:list(map(lambda i:v[i],idx_rows)) for k,v in dictdata.items()}
+		# Remove temporary CSV files
+		remove_files = glob.glob('./tmp-metric-*.csv')
+		for remove_file in remove_files:
+			try:
+				os.remove(remove_file)
+			except:
+				print("Error while deleting file: ", remove_file)
 		return dictdata
