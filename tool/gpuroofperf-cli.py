@@ -27,6 +27,7 @@ class gpuroofperftool_CLI:
 		self.utilization = False
 		self.use_csv = False
 		self.nvprof_check = False
+		self.prefix = None
 		return
 
 	def showHelp(self):
@@ -122,7 +123,7 @@ class gpuroofperftool_CLI:
 
 	def kernelInspection(self):
 		# Extract gpu metrics and select GPU if required
-		extractor = ki.KernelParamExtractor(self.invocation, self.utilization, self.path_nvprof, self.VERSION)
+		extractor = ki.KernelParamExtractor(self.prefix, self.invocation, self.utilization, self.path_nvprof, self.VERSION)
 		try:
 			gpumetrics = extractor.retrieveGPUInfo()
 		except ki.NoneGPUsException as e:
@@ -230,7 +231,7 @@ class gpuroofperftool_CLI:
 			self.showHelp()
 			return
 		try:
-			opts, args = getopt.getopt(self.cmdargs, "hp:o:i:g:s:ucv", ["profpath=","output=","gpuspecs=","input=","prediction=","utilization","csv","nvprof-check"])
+			opts, args = getopt.getopt(self.cmdargs, "hp:o:i:g:s:ucvx:", ["profpath=","output=","gpuspecs=","input=","prediction=","utilization","csv","nvprof-check","prefix="])
 		except getopt.GetoptError:
 			self.showHelp()
 			sys.exit(2)
@@ -254,6 +255,8 @@ class gpuroofperftool_CLI:
 				self.use_csv = True
 			elif opt in ("-v", "--nvprof-check"):
 				self.nvprof_check = True
+			elif opt in ("-x", "--prefix"):
+				self.prefix = arg
 		self.invocation = ' '.join(args).strip()
 		self.mode_kernel_inspection = self.invocation != ""
 		self.mode_prediction = self.gpu_params and ((self.input_params is not None) or (self.invocation))

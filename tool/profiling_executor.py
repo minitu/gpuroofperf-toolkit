@@ -53,12 +53,12 @@ class profExecutor:
 			time.sleep(0.1)
 			counter = (counter + 1) % len(CHARS)
 
-	def execute(self, arguments, message=None, device=None):
+	def execute(self, prefix, arguments, message=None, device=None):
 		envvars = {}
 		if device is not None:
 			envvars['CUDA_VISIBLE_DEVICES'] = str(device)
 		start_time = time.time()
-		proc = profExecutor._execute(["lrun","-N1","-T1"]+[self.nvprof]+arguments, envvars )
+		proc = profExecutor._execute(prefix.split()+[self.nvprof]+arguments, envvars )
 		(stdout, stderr) = (proc.stdout, proc.stderr)
 		if message is not None:
 			print("%s... " % (message), end='', flush=True)

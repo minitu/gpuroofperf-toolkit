@@ -21,7 +21,8 @@ class NoneGPUsException(Exception):
 class KernelParamExtractor:
 	IGNORED_CALLS = ('', '[CUDA memcpy HtoD]', '[CUDA memcpy DtoH]', '[CUDA memset]')
 
-	def __init__(self, invocation, utilization, nvprofpath=None, appver=None):
+	def __init__(self, prefix, invocation, utilization, nvprofpath=None, appver=None):
+		self.prefix = prefix
 		self.invocation = invocation
 		self.executor = profiling_executor.profExecutor(nvprofpath)
 		self.selected_device = None
@@ -117,7 +118,7 @@ class KernelParamExtractor:
 
 	# Retrieve GPU metrics for available devices
 	def retrieveGPUInfo(self):
-		(lines_out, lines_err) = self.executor.execute(['--devices', 'all', '--query-metrics'], 'Retrieving GPU information')
+		(lines_out, lines_err) = self.executor.execute(self.prefix, ['--devices', 'all', '--query-metrics'], 'Retrieving GPU information')
 		lines_out = map(lambda l:l.strip(), lines_out)
 		lines_out = filter(lambda l:not l=='', lines_out)
 		self.gpumetrics = []
@@ -139,7 +140,7 @@ class KernelParamExtractor:
 		return self.gpumetrics
 
 	def simpleProfiling(self):
-		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv']+self.invocation.split(), 'Running simple profiling', self.selected_device)
+		(lines_out, lines_err) = self.executor.execute(self.prefix, ['-u', 'ms', '--demangling', 'off', '--csv']+self.invocation.split(), 'Running simple profiling', self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = []
 		for row in csv.reader(lines_err):
@@ -175,7 +176,7 @@ class KernelParamExtractor:
 	def traceProfiling(self, subject_kernels):
 		#nvprof -u ms --print-gpu-trace $executable
 		#TODO: Consider limiting trace profiling to a particular kernel (--kernels xx)
-		(lines_out, lines_err) = self.executor.execute(['-u', 'ms', '--csv', '--print-gpu-trace']+self.invocation.split(), 'Running trace profiling', self.selected_device)
+		(lines_out, lines_err) = self.executor.execute(self.prefix, ['-u', 'ms', '--csv', '--print-gpu-trace']+self.invocation.split(), 'Running trace profiling', self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = [row for row in csv.reader(lines_err) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
@@ -261,7 +262,7 @@ class KernelParamExtractor:
 			arguments.append('--metrics')
 			arguments.append(','.join(metrics))
 		arguments += self.invocation.split()
-		(lines_out, lines_err) = self.executor.execute(arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device)
+		(lines_out, lines_err) = self.executor.execute(self.prefix, arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device)
 		# Process CSV rows and exclude unwanted rows
 		filtereddata = [row for row in csv.reader(lines_err) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
