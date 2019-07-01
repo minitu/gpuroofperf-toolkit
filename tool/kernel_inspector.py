@@ -36,6 +36,7 @@ class KernelParamExtractor:
 		self.utilizationprofile = {}
 		self.appversion = appver
 		self.driver = None
+		self.jobid = os.environ['LSB_JOBID']
 
 	# Get kernel parameters out of metric data
 	def get_params(self):
@@ -141,9 +142,9 @@ class KernelParamExtractor:
 		return self.gpumetrics
 
 	def simpleProfiling(self):
-		self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv', '--log-file', 'tmp-simple-%q{OMPI_COMM_WORLD_RANK}.csv']+self.invocation.split(), 'Running simple profiling', self.selected_device, self.prefix)
+		self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv', '--log-file', 'tmp-simple-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']+self.invocation.split(), 'Running simple profiling', self.selected_device, self.prefix)
 		# Process CSV rows and exclude unwanted rows
-		csv_file = open('tmp-simple-0.csv')
+		csv_file = open('tmp-simple-'+self.jobid+'-0.csv')
 		filtereddata = []
 		for row in csv.reader(csv_file):
 			if len(row)>=7:
@@ -167,7 +168,7 @@ class KernelParamExtractor:
 			results[name] = {k:v[i] for k,v in dictdata.items() if k!=KEY_COLUMN}
 		self.simpleprofile = results
 		# Remove temporary CSV files
-		remove_files = glob.glob('./tmp-simple-*.csv')
+		remove_files = glob.glob('./tmp-simple-'+self.jobid+'-*.csv')
 		for remove_file in remove_files:
 			try:
 				os.remove(remove_file)
@@ -261,7 +262,7 @@ class KernelParamExtractor:
 
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
-		arguments = ['-u', 'ms', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-%q{OMPI_COMM_WORLD_RANK}.csv']
+		arguments = ['-u', 'ms', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']
 		subject_kernels_copy = subject_kernels.copy()
 		while subject_kernels_copy:
 			kernel = subject_kernels_copy.pop()
@@ -272,7 +273,7 @@ class KernelParamExtractor:
 		arguments += self.invocation.split()
 		self.executor.execute(arguments, 'Running metric profiling ({}, {} total metrics)'.format(metric_des, len(metrics)), self.selected_device, self.prefix)
 		# Process CSV rows and exclude unwanted rows
-		csv_file = open('tmp-metric-0.csv')
+		csv_file = open('tmp-metric-'+self.jobid+'-0.csv')
 		filtereddata = [row for row in csv.reader(csv_file) if len(row)>6]
 		# Convert filtered list data to dictionary using header row as keys
 		dictdata = {row[0]:row[1:] for row in zip(*filtereddata)}
@@ -280,7 +281,7 @@ class KernelParamExtractor:
 		#idx_rows = [i for i,v in enumerate(dictdata['Kernel']) if v in subject_kernels]
 		#dictdata = {k:list(map(lambda i:v[i],idx_rows)) for k,v in dictdata.items()}
 		# Remove temporary CSV files
-		remove_files = glob.glob('./tmp-metric-*.csv')
+		remove_files = glob.glob('./tmp-metric-'+self.jobid+'-*.csv')
 		for remove_file in remove_files:
 			try:
 				os.remove(remove_file)
