@@ -55,8 +55,8 @@ class profExecutor:
 
 	def execute(self, arguments, message=None, device=None, prefix=""):
 		envvars = {}
-		if device is not None:
-			envvars['CUDA_VISIBLE_DEVICES'] = str(device)
+		#if device is not None:
+		#	envvars['CUDA_VISIBLE_DEVICES'] = str(device)
 		start_time = time.time()
 		proc = profExecutor._execute(prefix.split()+[self.nvprof]+arguments, envvars)
 		if message is not None:
