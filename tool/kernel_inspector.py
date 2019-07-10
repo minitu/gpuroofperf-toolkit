@@ -142,7 +142,7 @@ class KernelParamExtractor:
 		return self.gpumetrics
 
 	def simpleProfiling(self):
-		self.executor.execute(['-u', 'ms', '--demangling', 'off', '--csv', '--log-file', 'tmp-simple-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']+self.invocation.split(), 'Running simple profiling', self.selected_device, self.prefix)
+		self.executor.execute(['-u', 'ms', '--profile-from-start', 'off', '--demangling', 'off', '--csv', '--log-file', 'tmp-simple-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']+self.invocation.split(), 'Running simple profiling', self.selected_device, self.prefix)
 		# Process CSV rows and exclude unwanted rows
 		csv_file = open('tmp-simple-'+self.jobid+'-0.csv')
 		filtereddata = []
@@ -262,7 +262,7 @@ class KernelParamExtractor:
 
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
-		arguments = ['-u', 'ms', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']
+		arguments = ['-u', 'ms', '--profile-from-start', 'off', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']
 		subject_kernels_copy = subject_kernels.copy()
 		while subject_kernels_copy:
 			kernel = subject_kernels_copy.pop()

@@ -165,7 +165,7 @@ class gpuroofperftool_CLI:
 			for i, kernel in enumerate(kernels_by_time):
 				time_percent_run += kernel[1]
 				subject_kernel_indexes.append(i)
-				if time_percent_run >= time_percent_sum * 0.9:
+				if time_percent_run >= time_percent_sum * 0.95:
 					break
 			print('Selected percentage: %.2f%% (%.2f%% of total)' % (time_percent_run, time_percent_run / time_percent_sum * 100))
 			subject_kernels = {kernels_by_time[i][0] for i in subject_kernel_indexes}
