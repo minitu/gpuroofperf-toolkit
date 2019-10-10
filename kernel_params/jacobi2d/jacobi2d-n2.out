@@ -1,0 +1,87 @@
+gpuroofperf-tool v.0.9.0 (CLI)
+
+
+------- Running kernel inspection -------
+Executing: nvprof
+Executing: nvprof --devices all --query-metrics
+Retrieving GPU information... Done, took 0.33 seconds
+Profiling on GPU: Tesla V100-SXM2-16GB
+Invocation: "/g/g90/choi18/jacobi2d/jacobi2d-b -s 16384 -i 100"
+Executing: jsrun -n2 -a1 -g1 -c1 -K1 -r2 nvprof -u ms --demangling off --csv --log-file tmp-simple-603964-%q{OMPI_COMM_WORLD_RANK}.csv /g/g90/choi18/jacobi2d/jacobi2d-b -s 16384 -i 100
+Running simple profiling... Done, took 2.91 seconds
+GPU kernel functions invoked:
+1. _Z13stencilKernelPdS_i (Time(%):51.41, 586.4215 msecs, 100 invocations)
+2. _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_ (Time(%):21.49, 245.1704 msecs, 100 invocations)
+3. _Z10packKernelPdS_S_i (Time(%):13.20, 150.5899 msecs, 100 invocations)
+4. _Z12unpackKernelPdS_S_i (Time(%):13.20, 150.5816 msecs, 100 invocations)
+5. _Z14randInitKernelPdi (Time(%):0.29, 3.2990 msecs, 1 invocations)
+6. _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_dEEvT0_T1_T2_T3_T4_ (Time(%):0.06, 0.6723 msecs, 100 invocations)
+Total percentage: 99.65%
+Selected percentage: 99.30% (99.65% of total)
+Selected kernels: "_Z13stencilKernelPdS_i", "_Z10packKernelPdS_S_i", "_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_", "_Z12unpackKernelPdS_S_i"
+Executing: jsrun -n2 -a1 -g1 -c1 -K1 -r2 nvprof -u ms --csv --demangling off --log-file tmp-metric-603964-%q{OMPI_COMM_WORLD_RANK}.csv --kernels _Z13stencilKernelPdS_i --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st --kernels _Z10packKernelPdS_S_i --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st --kernels _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_ --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp
+Executing: nvprof --devices all --query-metrics
+Retrieving GPU information... Done, took 0.33 seconds
+Profiling on GPU: Tesla V100-SXM2-16GB
+Invocation: "/g/g90/choi18/jacobi2d/jacobi2d-b -s 16384 -i 100"
+Executing: jsrun -n2 -a1 -g1 -c1 -K1 -r2 nvprof -u ms --demangling off --csv --log-file tmp-simple-603964-%q{OMPI_COMM_WORLD_RANK}.csv /g/g90/choi18/jacobi2d/jacobi2d-b -s 16384 -i 100
+Running simple profiling... Done, took 2.91 seconds
+GPU kernel functions invoked:
+1. _Z13stencilKernelPdS_i (Time(%):51.41, 586.4215 msecs, 100 invocations)
+2. _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_ (Time(%):21.49, 245.1704 msecs, 100 invocations)
+3. _Z10packKernelPdS_S_i (Time(%):13.20, 150.5899 msecs, 100 invocations)
+4. _Z12unpackKernelPdS_S_i (Time(%):13.20, 150.5816 msecs, 100 invocations)
+5. _Z14randInitKernelPdi (Time(%):0.29, 3.2990 msecs, 1 invocations)
+6. _ZN3cub28DeviceReduceSingleTileKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_dEEvT0_T1_T2_T3_T4_ (Time(%):0.06, 0.6723 msecs, 100 invocations)
+Total percentage: 99.65%
+Selected percentage: 99.30% (99.65% of total)
+Selected kernels: "_Z13stencilKernelPdS_i", "_Z10packKernelPdS_S_i", "_ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_", "_Z12unpackKernelPdS_S_i"
+Executing: jsrun -n2 -a1 -g1 -c1 -K1 -r2 nvprof -u ms --csv --demangling off --log-file tmp-metric-603964-%q{OMPI_COMM_WORLD_RANK}.csv --kernels _Z13stencilKernelPdS_i --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st --kernels _Z10packKernelPdS_S_i --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st --kernels _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_ --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st --kernels _Z12unpackKernelPdS_S_i --metrics l2_read_transactions,l2_write_transactions,dram_read_transactions,dram_write_transactions,flop_count_dp,flop_count_dp_add,flop_count_dp_fma,flop_count_dp_mul,flop_count_sp,flop_count_sp_add,flop_count_sp_fma,flop_count_sp_mul,flop_count_sp_special,inst_executed,inst_fp_32,inst_fp_64,inst_integer,inst_compute_ld_st /g/g90/choi18/jacobi2d/jacobi2d-b -s 16384 -i 100
+Running metric profiling (all, 18 total metrics)... Done, took 885.25 seconds
+Kernel inspection done!
+Executing: nvidia-smi -q
+Querying GPU driver version (via nvidia-smi)... Done
+
+Kernel parameters saved to  "jacobi2d.json"
+
+------- Primary kernel parameters -------
+Kernel name: _Z13stencilKernelPdS_i
+        Kernel type:            Floating point (DP)
+        Compute operations:     161061273600 ops
+        DRAM accesses:          459998163200 bytes
+        Computation efficiency: 0.60000
+        Instruction mix:
+                Computations:   13.87%
+                Load/Stores:    16.64%
+                Other:          69.49%
+
+Kernel name: _Z10packKernelPdS_S_i
+        Kernel type:            Integer
+        Compute operations:     242083660800 ops
+        DRAM accesses:          415712000 bytes
+        Computation efficiency: 0.50000
+        Instruction mix:
+                Computations:   47.33%
+                Load/Stores:     0.00%
+                Other:          52.67%
+
+Kernel name: _ZN3cub18DeviceReduceKernelINS_18DeviceReducePolicyIdiNS_3SumEE9Policy600EPdS5_iS2_EEvT0_T1_T2_NS_13GridEvenShareIS8_EET3_
+        Kernel type:            Floating point (DP)
+        Compute operations:     27179699600 ops
+        DRAM accesses:          218625561600 bytes
+        Computation efficiency: 0.50000
+        Instruction mix:
+                Computations:   46.18%
+                Load/Stores:    22.82%
+                Other:          31.01%
+
+Kernel name: _Z12unpackKernelPdS_S_i
+        Kernel type:            Integer
+        Compute operations:     242083660800 ops
+        DRAM accesses:          437344000 bytes
+        Computation efficiency: 0.50000
+        Instruction mix:
+                Computations:   47.33%
+                Load/Stores:     0.00%
+                Other:          52.67%
+
