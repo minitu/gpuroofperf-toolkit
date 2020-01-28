@@ -20,7 +20,7 @@ class NoneGPUsException(Exception):
     pass
 
 class KernelParamExtractor:
-	IGNORED_CALLS = ('', '[CUDA memcpy HtoD]', '[CUDA memcpy DtoH]', '[CUDA memset]')
+	IGNORED_CALLS = ('', '[CUDA memcpy HtoD]', '[CUDA memcpy DtoH]', '[CUDA memset]', '[CUDA memcpy PtoP]')
 
 	def __init__(self, prefix, invocation, utilization, nvprofpath=None, appver=None):
 		self.prefix = prefix
@@ -262,7 +262,7 @@ class KernelParamExtractor:
 
 	# Metric profiling helper member function
 	def __metric_profile(self, subject_kernels, metrics, metric_des):
-		arguments = ['-u', 'ms', '--profile-from-start', 'off', '--csv', '--demangling', 'off', '--log-file', 'tmp-metric-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']
+		arguments = ['-u', 'ms', '--profile-from-start', 'off', '--csv', '--demangling', 'off', '--profile-api-trace', 'none', '--log-file', 'tmp-metric-'+self.jobid+'-%q{OMPI_COMM_WORLD_RANK}.csv']
 		subject_kernels_copy = subject_kernels.copy()
 		while subject_kernels_copy:
 			kernel = subject_kernels_copy.pop()
